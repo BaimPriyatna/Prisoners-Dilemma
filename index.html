@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prisoner's Dilemma Online</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 900px;
+      padding: 32px;
+      transition: all 0.3s;
+    }
+    
+    h1, h2, h3, h4 {
+      color: #333;
+      margin-bottom: 16px;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    .flex {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .card {
+      background: #f9f9f9;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .input-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #555;
+    }
+    
+    input, button {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: 0.2s;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: #764ba2;
+      box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.2);
+    }
+    
+    button {
+      background: #764ba2;
+      color: white;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    
+    button:hover:not(:disabled) {
+      background: #5a3d7a;
+    }
+    
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    button.secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+    
+    button.secondary:hover:not(:disabled) {
+      background: #d0d0d0;
+    }
+    
+    .profile {
+      background: #764ba2;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 40px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+    }
+    
+    .profile i {
+      font-size: 20px;
+    }
+    
+    .badge {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 4px 12px;
+      border-radius: 40px;
+      font-size: 14px;
+    }
+    
+    .copy-btn {
+      background: transparent;
+      border: 1px solid white;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 40px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-left: 8px;
+    }
+    
+    .copy-btn:hover {
+      background: white;
+      color: #764ba2;
+    }
+    
+    .arena {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin: 40px 0;
+    }
+    
+    .player {
+      text-align: center;
+    }
+    
+    .avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      margin-bottom: 12px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+    
+    .avatar.self {
+      background: #3b82f6;
+    }
+    
+    .avatar.opponent {
+      background: #f59e0b;
+    }
+    
+    .score {
+      font-size: 24px;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+    
+    .matrix {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 400px;
+      margin: 24px auto;
+      text-align: center;
+    }
+    
+    .cell {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      font-weight: bold;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .cell.cc {
+      border-left: 8px solid #10b981;
+    }
+    .cell.cd {
+      border-left: 8px solid #ef4444;
+    }
+    .cell.dc {
+      border-left: 8px solid #f59e0b;
+    }
+    .cell.dd {
+      border-left: 8px solid #6b7280;
+    }
+    
+    .cell.active {
+      transform: scale(1.05);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      background: #fbbf24;
+      color: #000;
+      font-weight: bold;
+    }
+    
+    .cell small {
+      display: block;
+      font-size: 14px;
+      color: #666;
+      margin-top: 8px;
+    }
+    
+    .cell.active small {
+      color: #000;
+      font-weight: normal;
+    }
+    
+    .turn-info {
+      display: flex;
+      justify-content: space-between;
+      margin: 16px 0;
+      padding: 16px;
+      background: #f0f0f0;
+      border-radius: 12px;
+    }
+    
+    .history {
+      background: #f0f0f0;
+      border-radius: 16px;
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .move-history {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    
+    .move-badge {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      line-height: 40px;
+      text-align: center;
+      border-radius: 8px;
+      font-weight: bold;
+      color: white;
+    }
+    
+    .move-badge.C {
+      background: #10b981;
+    }
+    
+    .move-badge.D {
+      background: #ef4444;
+    }
+    
+    .result-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-weight: 600;
+      color: white;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    th {
+      background: #f0f0f0;
+      font-weight: 600;
+    }
+    
+    tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .error {
+      color: #ef4444;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    
+    .info {
+      color: #3b82f6;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #764ba2;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .payoff-legend {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    
+    .loading i {
+      font-size: 40px;
+      margin-bottom: 16px;
+      color: #764ba2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <div id="loginPage">
+      <h1 class="flex-between">
+        <span><i class="fas fa-gamepad"></i> Prisoner's Dilemma</span>
+        <i class="fas fa-handshake"></i>
+      </h1>
+      <div class="card">
+        <h2>Register / Login</h2>
+        <div class="input-group">
+          <label for="name">Name</label>
+          <input type="text" id="name" placeholder="Enter unique name" autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label for="privateKey">Private Key (for login)</label>
+          <input type="text" id="privateKey" placeholder="Fill if you already have an account">
+        </div>
+        <div class="flex">
+          <button id="registerBtn" class="secondary">Register</button>
+          <button id="loginBtn">Login</button>
+        </div>
+        <p class="error" id="loginError"></p>
+      </div>
+      <div id="registrationResult" class="hidden card">
+        <h3><i class="fas fa-check-circle"></i> Registration Successful!</h3>
+        <p>Save this private key to login again:</p>
+        <div class="flex-between" style="background:#eee; padding:12px; border-radius:12px;">
+          <code id="newPrivateKey">-</code>
+          <button class="copy-btn" id="copyNewKey"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+        <p class="flex" style="margin-top:16px;"><i class="fas fa-info-circle"></i> Click "Login" after copying.</p>
+      </div>
+    </div>
+
+    <div id="mainPage" class="hidden">
+      <div class="flex-between">
+        <h2><i class="fas fa-hand-peace"></i> Hello, <span id="displayName"></span></h2>
+        <div class="profile" id="profile">
+          <i class="fas fa-user-circle"></i>
+          <span id="profileName"></span>
+          <span class="badge" id="profileId"></span>
+          <button class="copy-btn" id="copyPrivateKey"><i class="fas fa-copy"></i> Key</button>
+        </div>
+      </div>
+
+      <div class="card" id="menuPlay">
+        <h3>Start Game</h3>
+        <div class="input-group">
+          <label for="opponentCode">Opponent Code</label>
+          <input type="text" id="opponentCode" placeholder="Enter opponent player code">
+        </div>
+        <button id="challengeBtn">Challenge Opponent</button>
+        <p class="error" id="challengeError"></p>
+        <p class="info" id="challengeInfo"></p>
+      </div>
+
+      <div id="matchArea" class="hidden">
+        <div class="flex-between">
+          <h3><i class="fas fa-crosshairs"></i> Match</h3>
+          <span class="badge" id="roomDisplay"></span>
+        </div>
+        
+        <div class="arena">
+          <div class="player">
+            <div class="avatar self" id="selfAvatar"><i class="fas fa-user"></i></div>
+            <div><strong id="selfName">You</strong></div>
+            <div class="score" id="selfScore">0</div>
+          </div>
+          <div style="font-size:32px;"><i class="fas fa-exchange-alt"></i></div>
+          <div class="player">
+            <div class="avatar opponent" id="opponentAvatar"><i class="fas fa-user-secret"></i></div>
+            <div><strong id="opponentName">Opponent</strong></div>
+            <div class="score" id="opponentScore">0</div>
+          </div>
+        </div>
+
+        <div class="payoff-legend">
+          <div class="legend-item"><span class="legend-color" style="background:#10b981;"></span> CC: 3,3</div>
+          <div class="legend-item"><span class="legend-color" style="background:#ef4444;"></span> CD: 0,5</div>
+          <div class="legend-item"><span class="legend-color" style="background:#f59e0b;"></span> DC: 5,0</div>
+          <div class="legend-item"><span class="legend-color" style="background:#6b7280;"></span> DD: 1,1</div>
+        </div>
+        
+        <div class="matrix">
+          <div class="cell cc" id="cellCC">
+            <i class="fas fa-handshake"></i> CC<br>
+            <small>3,3</small>
+          </div>
+          <div class="cell cd" id="cellCD">
+            <i class="fas fa-hand-peace"></i> CD<br>
+            <small>0,5</small>
+          </div>
+          <div class="cell dc" id="cellDC">
+            <i class="fas fa-fist-raised"></i> DC<br>
+            <small>5,0</small>
+          </div>
+          <div class="cell dd" id="cellDD">
+            <i class="fas fa-skull"></i> DD<br>
+            <small>1,1</small>
+          </div>
+        </div>
+
+        <div class="turn-info">
+          <div>
+            <i class="fas fa-clock"></i> Round: <strong id="roundCounter">0</strong>
+          </div>
+          <div>
+            <i class="fas fa-hourglass-half"></i> Time: <strong id="timer">30s</strong>
+          </div>
+          <div>
+            <i class="fas fa-chart-line"></i> Diff: <strong id="scoreDiff">0</strong>
+          </div>
+        </div>
+
+        <div class="history">
+          <h4><i class="fas fa-history"></i> Move History</h4>
+          <div class="flex-between">
+            <span><strong>You:</strong></span>
+            <span><strong>Opponent:</strong></span>
+          </div>
+          <div id="historyDisplay" style="min-height: 100px;">
+          </div>
+        </div>
+
+        <div class="flex" style="justify-content: center; margin-top: 24px;">
+          <button id="cooperateBtn" class="secondary" style="flex:1; background:#10b981; color:white; font-size:18px; padding:16px;">
+            <i class="fas fa-handshake"></i> Cooperate (C)
+          </button>
+          <button id="defectBtn" style="flex:1; background:#ef4444; color:white; font-size:18px; padding:16px;">
+            <i class="fas fa-fist-raised"></i> Defect (D)
+          </button>
+        </div>
+        <p class="error" id="gameError"></p>
+      </div>
+
+      <div id="resultArea" class="hidden">
+        <div class="flex-between">
+          <h2><i class="fas fa-chart-bar"></i> Analysis Result</h2>
+          <span class="badge" id="resultGameId"></span>
+        </div>
+        
+        <div class="card">
+          <h3><i class="fas fa-trophy"></i> Final Score</h3>
+          <div class="flex" style="justify-content: space-around;">
+            <div class="stat-card" style="text-align:center; flex:1;">
+              <div class="stat-value" id="finalMyScore">0</div>
+              <div class="stat-label">Your Score</div>
+            </div>
+            <div class="stat-card" style="text-align:center; flex:1;">
+              <div class="stat-value" id="finalOppScore">0</div>
+              <div class="stat-label">Opponent Score</div>
+            </div>
+            <div class="stat-card" style="text-align:center; flex:1;">
+              <div class="stat-value" id="finalDiff">0</div>
+              <div class="stat-label">Difference</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card" id="personalityCard">
+          <h3><i class="fas fa-brain"></i> Opponent Personality</h3>
+          <div id="personalityList"></div>
+        </div>
+
+        <div class="card">
+          <h3><i class="fas fa-bullseye"></i> Primary Strategy</h3>
+          <div id="primaryStrategy"></div>
+        </div>
+
+        <div class="card">
+          <h3><i class="fas fa-chart-line"></i> Top 7 Strategies</h3>
+          <table class="table" id="topStrategiesTable">
+            <thead>
+              <tr>
+                <th>Strategy</th>
+                <th style="text-align:right;">Probability</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3><i class="fas fa-list-ol"></i> Full History</h3>
+          <div class="flex" style="gap: 24px;">
+            <div style="flex:1;">
+              <h4>You</h4>
+              <div id="historySelf" class="move-history"></div>
+            </div>
+            <div style="flex:1;">
+              <h4>Opponent</h4>
+              <div id="historyOpp" class="move-history"></div>
+            </div>
+          </div>
+          <p style="margin-top:16px;">Total rounds: <strong id="totalRounds"></strong></p>
+        </div>
+
+        <div class="card" id="additionalStats"></div>
+
+        <div class="flex" style="margin-top: 24px;">
+          <button id="rematchBtn" class="secondary" style="flex:1;">
+            <i class="fas fa-redo-alt"></i> Rematch
+          </button>
+          <button id="backToMenuBtn" style="flex:1;">
+            <i class="fas fa-home"></i> Back to Menu
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="analyzer.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
