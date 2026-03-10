@@ -24,7 +24,8 @@ const app = express();
 const GITHUB_PAGES_URL = 'https://baimpriyatna.github.io'; // GANTI!
 
 const allowedOrigins = [
-  GITHUB_PAGES_URL,
+  'https://baimpriyatna.github.io',
+  'https://baimpriyatna.github.io/Prisoners-Dilemma',
   'http://localhost:5500',
   'http://127.0.0.1:5500',
   'http://localhost:3000',
