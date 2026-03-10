@@ -4,48 +4,31 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
-const fs = require('fs').promises;
-const path = require('path');
+const axios = require('axios');
 
 const IPDStrategyAnalyzer = require('./analyzer.js');
 
 const PORT = process.env.PORT || 3000;
 const ROUND_TIMEOUT = 30000;
 const CHALLENGE_TIMEOUT = 30000;
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+const SHEET_NAME = process.env.SHEET_NAME || 'Sheet1';
 
-// Di Vercel, gunakan /tmp untuk file sementara
-const USERS_FILE = path.join('/tmp', 'users.json');
-
-async function initUsersFile() {
-  try {
-    await fs.access(USERS_FILE);
-  } catch {
-    await fs.writeFile(USERS_FILE, JSON.stringify([]));
-  }
-}
-
-async function readUsers() {
-  try {
-    const data = await fs.readFile(USERS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function writeUsers(users) {
-  await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
-}
-
-initUsersFile();
+// Google Sheets API
+const API_KEY = process.env.GOOGLE_API_KEY;
+const SHEETS_API = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A:C?key=${API_KEY}`;
+const SHEETS_APPEND_API = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A:C:append?valueInputOption=USER_ENTERED&key=${API_KEY}`;
 
 const app = express();
 
+const GITHUB_PAGES_URL = 'https://username.github.io'; // GANTI!
+
 const allowedOrigins = [
-  'https://your-github-username.github.io',
+  GITHUB_PAGES_URL,
   'http://localhost:5500',
   'http://127.0.0.1:5500',
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'https://' + process.env.REPL_SLUG + '.' + process.env.REPL_OWNER + '.repl.co'
 ];
 
 app.use(cors({
@@ -76,6 +59,35 @@ const io = socketIo(server, {
 const onlineUsers = new Map();
 const games = new Map();
 
+// Helper functions for Google Sheets
+async function getUsers() {
+  try {
+    const response = await axios.get(SHEETS_API);
+    const rows = response.data.values || [];
+    return rows.slice(1).map(row => ({
+      name: row[0] || '',
+      id: row[1] || '',
+      key: row[2] || ''
+    }));
+  } catch (error) {
+    console.error('Error reading from Google Sheets:', error.message);
+    return [];
+  }
+}
+
+async function addUser(name, id, key) {
+  try {
+    await axios.post(SHEETS_APPEND_API, {
+      values: [[name, id, key]]
+    });
+    return true;
+  } catch (error) {
+    console.error('Error writing to Google Sheets:', error.message);
+    return false;
+  }
+}
+
+// REST Endpoints
 app.post('/api/register', async (req, res) => {
   try {
     const { name } = req.body;
@@ -83,18 +95,21 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Name is required' });
     }
 
-    const users = await readUsers();
+    const users = await getUsers();
     if (users.some(u => u.name === name)) {
       return res.status(400).json({ success: false, message: 'Name already exists' });
     }
 
     const id = `PD-${uuidv4().slice(0, 8)}`;
     const key = crypto.randomBytes(16).toString('hex');
-    const newUser = { name, id, key };
-    users.push(newUser);
-    await writeUsers(users);
-
-    res.json({ success: true, user: newUser });
+    
+    const added = await addUser(name, id, key);
+    
+    if (added) {
+      res.json({ success: true, user: { name, id, key } });
+    } else {
+      res.status(500).json({ success: false, message: 'Failed to save user' });
+    }
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
@@ -108,7 +123,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Name and key are required' });
     }
 
-    const users = await readUsers();
+    const users = await getUsers();
     const user = users.find(u => u.name === name && u.key === key);
     
     if (user) {
@@ -123,12 +138,17 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', onlineUsers: onlineUsers.size, games: games.size });
+  res.json({ 
+    status: 'ok', 
+    onlineUsers: onlineUsers.size, 
+    games: games.size,
+    replit: process.env.REPL_SLUG || 'unknown'
+  });
 });
 
-app.get('/api/users', async (req, res) => {
+app.get('/api/users/count', async (req, res) => {
   try {
-    const users = await readUsers();
+    const users = await getUsers();
     res.json({ success: true, count: users.length });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error reading users' });
@@ -428,7 +448,6 @@ function cancelGame(roomId, reason) {
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Replit URL: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
   console.log(`Allowed origins:`, allowedOrigins);
 });
-
-module.exports = app;
