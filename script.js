@@ -1,6 +1,6 @@
 // script.js
 
-const SOCKET_SERVER_URL = 'https://your-server-domain.com';
+const SOCKET_SERVER_URL = 'https://nodejs--baimpriyatna.replit.app';
 const ANALYZER = new IPDStrategyAnalyzer();
 
 let socket = null;
