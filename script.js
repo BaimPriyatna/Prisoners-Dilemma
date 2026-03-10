@@ -81,6 +81,8 @@ function showResultArea() {
 function attachEventListeners() {
   document.getElementById('registerBtn').addEventListener('click', handleRegister);
   document.getElementById('loginBtn').addEventListener('click', handleLogin);
+  document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+  
   document.getElementById('copyNewKey').addEventListener('click', () => {
     copyToClipboard(document.getElementById('newPrivateKey').textContent);
   });
@@ -102,6 +104,49 @@ function attachEventListeners() {
       socket = null;
     }
   });
+}
+
+// Fungsi Logout
+function handleLogout() {
+  // Tanyakan konfirmasi
+  if (confirm('Are you sure you want to logout?')) {
+    // Disconnect socket jika ada
+    if (socket) {
+      socket.disconnect();
+      socket = null;
+    }
+    
+    // Hapus user dari localStorage
+    localStorage.removeItem('pd_user');
+    
+    // Reset current user
+    currentUser = null;
+    
+    // Reset match data
+    currentMatch = {
+      room: null,
+      opponentId: null,
+      opponentName: null,
+      myMoves: [],
+      opponentMoves: [],
+      myScore: 0,
+      opponentScore: 0,
+      currentRound: 0,
+      roundTimer: null,
+      timeLeft: 30,
+      gameActive: false
+    };
+    
+    // Clear form inputs
+    document.getElementById('name').value = '';
+    document.getElementById('privateKey').value = '';
+    
+    // Kembali ke halaman login
+    showLoginPage();
+    
+    // Tampilkan pesan sukses
+    alert('Logged out successfully!');
+  }
 }
 
 async function handleRegister() {
