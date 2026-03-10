@@ -216,6 +216,11 @@ function setupSocketListeners() {
     currentMatch.opponentId = data.opponentId;
     currentMatch.opponentName = data.opponentName;
     currentMatch.gameActive = true;
+    currentMatch.myMoves = [];
+    currentMatch.opponentMoves = [];
+    currentMatch.myScore = 0;
+    currentMatch.opponentScore = 0;
+    currentMatch.currentRound = 0;
     
     document.getElementById('opponentName').textContent = data.opponentName;
     document.getElementById('roomDisplay').textContent = `Room: ${data.room.slice(0, 8)}...`;
@@ -234,6 +239,7 @@ function setupSocketListeners() {
     currentMatch.currentRound = data.round;
     document.getElementById('roundCounter').textContent = data.round;
     startRoundTimer(data.timeLeft || 30);
+    toggleMoveButtons(true);
   });
 
   socket.on('round_result', (data) => {
@@ -251,6 +257,8 @@ function setupSocketListeners() {
     updateScores();
     highlightCell(data.myMove, data.opponentMove);
     updateScoreDiff();
+    
+    toggleMoveButtons(false);
   });
 
   socket.on('game_complete', (data) => {
@@ -416,19 +424,7 @@ function getPayoff(myMove, oppMove) {
 }
 
 function resetMatchDisplay() {
-  currentMatch = {
-    ...currentMatch,
-    room: null,
-    opponentId: null,
-    opponentName: null,
-    myMoves: [],
-    opponentMoves: [],
-    myScore: 0,
-    opponentScore: 0,
-    currentRound: 0,
-    gameActive: false
-  };
-
+  // Reset UI elements only, preserve gameActive and room
   document.getElementById('historyDisplay').innerHTML = '';
   document.getElementById('roundCounter').textContent = '0';
   document.getElementById('timer').textContent = '30s';
@@ -436,7 +432,11 @@ function resetMatchDisplay() {
   document.getElementById('opponentScore').textContent = '0';
   document.getElementById('scoreDiff').textContent = '0';
   document.querySelectorAll('.cell').forEach(c => c.classList.remove('active'));
-  toggleMoveButtons(true);
+  
+  // Reset move arrays but keep gameActive true if room exists
+  if (!currentMatch.room) {
+    currentMatch.gameActive = false;
+  }
 }
 
 function displayGameResult(data) {
@@ -449,15 +449,10 @@ function displayGameResult(data) {
   document.getElementById('resultGameId').textContent = `Rounds: ${data.totalRounds || data.myMoves.length}`;
 
   displayPersonality(analysis.personality);
-
   displayPrimaryStrategy(analysis.primaryStrategy);
-
   displayTopStrategies(analysis.topStrategies);
-
   displayFullHistoryWithPoints(data);
-
   displayPointStatistics(data, analysis);
-
   displayAdditionalInfo(analysis, data);
 }
 
@@ -664,7 +659,7 @@ function showError(elementId, message, type = 'error') {
 
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text).then(() => {
-    alert('<i class="fas fa-check-circle"></i> Private key copied!');
+    alert('✅ Private key copied!');
   }).catch(() => {
     prompt('Copy your private key manually:', text);
   });
