@@ -1,9 +1,10 @@
+// script.js
+
 const SOCKET_SERVER_URL = 'https://nodejs--baimpriyatna.replit.app';
 const ANALYZER = new IPDStrategyAnalyzer();
 
 let socket = null;
 let currentUser = null;
-let authToken = null;
 let currentMatch = {
   room: null,
   opponentId: null,
@@ -19,45 +20,22 @@ let currentMatch = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  checkSession();
-  attachEventListeners();
-});
-
-async function checkSession() {
-  authToken = localStorage.getItem('pd_token');
   const storedUser = localStorage.getItem('pd_user');
-
-  if (!authToken || !storedUser) {
-    showLoginPage();
-    return;
-  }
-
-  try {
-    const response = await fetch(`${SOCKET_SERVER_URL}/api/check-session`, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    });
-    
-    const data = await response.json();
-
-    if (data.success) {
-      currentUser = data.user;
-      initializeSocket();
-      showMainPage();
-    } else {
-      logout();
-    }
-  } catch (error) {
-    console.error('Session check failed:', error);
+  if (storedUser) {
     try {
       currentUser = JSON.parse(storedUser);
+      initializeSocket();
       showMainPage();
     } catch (e) {
-      logout();
+      localStorage.removeItem('pd_user');
+      showLoginPage();
     }
+  } else {
+    showLoginPage();
   }
-}
+
+  attachEventListeners();
+});
 
 function showLoginPage() {
   document.getElementById('loginPage').classList.remove('hidden');
@@ -103,16 +81,19 @@ function showResultArea() {
 function attachEventListeners() {
   document.getElementById('registerBtn').addEventListener('click', handleRegister);
   document.getElementById('loginBtn').addEventListener('click', handleLogin);
-  document.getElementById('logoutBtn').addEventListener('click', logout);
   document.getElementById('copyNewKey').addEventListener('click', () => {
     copyToClipboard(document.getElementById('newPrivateKey').textContent);
   });
+
   document.getElementById('copyPrivateKey').addEventListener('click', () => {
     copyToClipboard(currentUser.key);
   });
+
   document.getElementById('challengeBtn').addEventListener('click', handleChallenge);
+
   document.getElementById('cooperateBtn').addEventListener('click', () => makeMove('C'));
   document.getElementById('defectBtn').addEventListener('click', () => makeMove('D'));
+
   document.getElementById('rematchBtn').addEventListener('click', handleRematch);
   document.getElementById('backToMenuBtn').addEventListener('click', () => {
     showMainPage();
@@ -143,14 +124,10 @@ async function handleRegister() {
       document.getElementById('newPrivateKey').textContent = data.user.key;
       document.getElementById('registrationResult').classList.remove('hidden');
       
-      if (data.token) {
-        authToken = data.token;
-        localStorage.setItem('pd_token', authToken);
-        localStorage.setItem('pd_user', JSON.stringify(data.user));
-        currentUser = data.user;
-        initializeSocket();
-        showMainPage();
-      }
+      currentUser = data.user;
+      localStorage.setItem('pd_user', JSON.stringify(currentUser));
+      initializeSocket();
+      showMainPage();
     } else {
       showError('loginError', data.message || 'Registration failed');
     }
@@ -179,10 +156,8 @@ async function handleLogin() {
     const data = await response.json();
 
     if (data.success) {
-      authToken = data.token;
-      localStorage.setItem('pd_token', authToken);
-      localStorage.setItem('pd_user', JSON.stringify(data.user));
       currentUser = data.user;
+      localStorage.setItem('pd_user', JSON.stringify(currentUser));
       initializeSocket();
       showMainPage();
     } else {
@@ -192,40 +167,6 @@ async function handleLogin() {
     showError('loginError', 'Failed to connect to server');
     console.error(err);
   }
-}
-
-async function logout() {
-  if (authToken) {
-    try {
-      await fetch(`${SOCKET_SERVER_URL}/api/logout`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  }
-
-  authToken = null;
-  currentUser = null;
-  localStorage.removeItem('pd_token');
-  localStorage.removeItem('pd_user');
-  
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-  }
-  
-  if (currentMatch.roundTimer) {
-    clearInterval(currentMatch.roundTimer);
-    currentMatch.roundTimer = null;
-  }
-  
-  showLoginPage();
-  document.getElementById('name').value = '';
-  document.getElementById('privateKey').value = '';
 }
 
 function initializeSocket() {
@@ -238,29 +179,21 @@ function initializeSocket() {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-    auth: {
-      token: authToken
-    }
+    reconnectionDelay: 1000
   });
 
   setupSocketListeners();
 
   socket.on('connect', () => {
     console.log('Socket connected');
-    if (currentUser) {
-      socket.emit('register_user', {
-        userId: currentUser.id,
-        userName: currentUser.name
-      });
-    }
+    socket.emit('register_user', {
+      userId: currentUser.id,
+      userName: currentUser.name
+    });
   });
 
   socket.on('connect_error', (error) => {
     console.error('Socket connection error:', error);
-    if (error.message === 'Authentication error') {
-      logout();
-    }
     showError('challengeError', 'Failed to connect to server');
   });
 }
@@ -324,6 +257,7 @@ function setupSocketListeners() {
     updateScores();
     highlightCell(data.myMove, data.opponentMove);
     updateScoreDiff();
+    
     toggleMoveButtons(false);
   });
 
@@ -490,6 +424,7 @@ function getPayoff(myMove, oppMove) {
 }
 
 function resetMatchDisplay() {
+  // Reset UI elements only, preserve gameActive and room
   document.getElementById('historyDisplay').innerHTML = '';
   document.getElementById('roundCounter').textContent = '0';
   document.getElementById('timer').textContent = '30s';
@@ -498,6 +433,7 @@ function resetMatchDisplay() {
   document.getElementById('scoreDiff').textContent = '0';
   document.querySelectorAll('.cell').forEach(c => c.classList.remove('active'));
   
+  // Reset move arrays but keep gameActive true if room exists
   if (!currentMatch.room) {
     currentMatch.gameActive = false;
   }
