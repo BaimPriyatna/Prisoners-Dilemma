@@ -21,7 +21,7 @@ const SHEETS_APPEND_API = `https://sheets.googleapis.com/v4/spreadsheets/${SPREA
 
 const app = express();
 
-const GITHUB_PAGES_URL = 'https://username.github.io'; // GANTI!
+const GITHUB_PAGES_URL = 'https://baimpriyatna.github.io'; // GANTI!
 
 const allowedOrigins = [
   GITHUB_PAGES_URL,
