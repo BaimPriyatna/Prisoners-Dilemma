@@ -1222,10 +1222,10 @@ initializeExpectedProfiles() {
     if (currentLength < this.roundsRequired) {
       return { needsMore: true, suggested: this.roundsRequired - currentLength, reason: "Minimum rounds not met" };
     }
-    if (top1 < 0.25) {
+    if (top1 < 0.10) {
       return { needsMore: true, suggested: 5, reason: "Confidence too low" };
     }
-    if (gap < 0.05) {
+    if (gap < 0.01) {
       return { needsMore: true, suggested: 5, reason: "Top strategies are too similar" };
     }
     return { needsMore: false, suggested: 0, reason: "Analysis complete" };
